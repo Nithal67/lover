@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nos Souvenirs 💖</title>
 <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.27.0/dist/supabase.umd.min.js"></script>
+
+<!-- Supabase UMD bundle depuis unpkg -->
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/supabase.umd.js"></script>
+
 <style>
 body { margin:0; font-family:'Poppins',sans-serif; background:#ffeef2; color:#333; }
 header { background:#ff6b81; color:white; text-align:center; padding:20px; font-family:'Great Vibes', cursive; font-size:2em; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
@@ -75,15 +78,15 @@ button.add-btn:hover { background:#ff4757; transform:scale(1.05); }
 
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-  // ===== SUPABASE CONFIG =====
+
+  // Supabase client
   const SUPABASE_URL = 'https://rzibufafvrxnbanbnopt.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aWJ1ZmFmdnJ4bmJhbmJub3B0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzNjUyNDUsImV4cCI6MjA3OTk0MTI0NX0.hluW9vy-z1Dass6z_q2kLrSdSobzKgNo3WKktCB_92s';
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ===== GLOBAL VARS =====
   const eventsGrid = document.getElementById('eventsGrid');
 
-  // ===== SECTIONS =====
+  // Sections
   function showSection(name){
     document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
     document.getElementById(name).classList.add('active');
@@ -91,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btnSouvenirs').addEventListener('click', ()=>showSection('souvenirs'));
   showSection('souvenirs');
 
-  // ===== POPUPS =====
+  // Popups
   function openAddPopup(){ document.getElementById('addPopup').style.display='flex'; }
   function closeAddPopup(){ document.getElementById('addPopup').style.display='none'; }
   function closePopup(){ document.getElementById('popup').style.display='none'; }
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('closeAddBtn').addEventListener('click', closeAddPopup);
   document.getElementById('closePopupBtn').addEventListener('click', closePopup);
 
-  // ===== FETCH & RENDER EVENTS =====
+  // Fetch & Render
   async function fetchEvents(){
     const { data, error } = await supabaseClient.from('souvenirs').select('*').order('created_at', {ascending:true});
     if(error){ console.error(error); return; }
@@ -112,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     events.forEach(e=>{
       const div=document.createElement('div'); div.className='event-card';
       let mediaHTML='<div style="height:180px;background:#ffe0e6;"></div>';
-      if(e.media && e.media.length>0){
+      if(e.media){
         const m = JSON.parse(e.media)[0];
         if(m.type.startsWith('image')) mediaHTML=`<img src="${m.url}" alt="${e.name}">`;
         else if(m.type.startsWith('video')) mediaHTML=`<video src="${m.url}" autoplay muted loop></video>`;
@@ -139,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     popup.style.display='flex';
   }
 
-  // ===== ADD EVENT =====
+  // Add Event
   document.getElementById('addEventBtn').addEventListener('click', async ()=>{
     const name = document.getElementById('eventName').value;
     const date = document.getElementById('eventDate').value;
@@ -152,12 +155,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     for(const file of mediaFiles){
       const reader = new FileReader();
       await new Promise(resolve=>{
-        reader.onload=e=>{ media.push({name:file.name,type:file.type,url:e.target.result}); resolve(); };
+        reader.onload = e=>{ media.push({name:file.name,type:file.type,url:e.target.result}); resolve(); };
         reader.readAsDataURL(file);
       });
     }
 
-    const { error } = await supabaseClient.from('souvenirs').insert([{name,date,location,media: JSON.stringify(media)}]);
+    const { error } = await supabaseClient.from('souvenirs').insert([{name,date,location,media:JSON.stringify(media)}]);
     if(error){ console.error(error); alert("Erreur lors de l'ajout."); return; }
 
     closeAddPopup();
