@@ -120,6 +120,9 @@ function showSection(name){
 showSection('souvenirs');
 
 // ===== SOUVENIRS =====
+const chatContainer=document.getElementById('chatMessages');
+const chatInput=document.getElementById('chatInput');
+  
 const events=[];
 function openAddPopup(){ document.getElementById('addPopup').style.display='flex'; }
 function closeAddPopup(){ document.getElementById('addPopup').style.display='none'; }
@@ -184,8 +187,6 @@ function closePopup(){ document.getElementById('popup').style.display='none'; }
 renderEvents();
 
 // ===== CHAT =====
-const chatContainer=document.getElementById('chatMessages');
-const chatInput=document.getElementById('chatInput');
 
 async function setupChat(){
   const { data: messages } = await supabase.from('messages').select('*').order('created_at');
