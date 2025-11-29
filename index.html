@@ -59,14 +59,14 @@ button.next:hover { background:#ff4757; }
 <header>Notre Petit Monde 💖</header>
 
 <nav>
-  <button onclick="showSection('souvenirs')">Souvenirs</button>
-  <button onclick="showSection('chat')">Chat</button>
-  <button onclick="showSection('jeu')">Jeu</button>
+  <button id="btnSouvenirs">Souvenirs</button>
+  <button id="btnChat">Chat</button>
+  <button id="btnJeu">Jeu</button>
 </nav>
 
 <!-- SOUVENIRS -->
 <div id="souvenirs" class="section">
-  <button class="add-btn" onclick="openAddPopup()">Ajouter un souvenir 💌</button>
+  <button class="add-btn" id="openAdd">Ajouter un souvenir 💌</button>
   <div id="eventsGrid" class="events-grid"></div>
 </div>
 
@@ -81,166 +81,171 @@ button.next:hover { background:#ff4757; }
 <!-- JEU -->
 <div id="jeu" class="section">
   <h2 style="text-align:center; color:#ff6b81; font-family:'Great Vibes', cursive;">💖 Jeu 💖</h2>
-  <button class="next" onclick="nextQuestion()">Nouvelle question 💌</button>
+  <button class="next" id="nextQ">Nouvelle question 💌</button>
   <div class="question-card" id="question">Clique sur le bouton pour commencer !</div>
 </div>
 
 <!-- POPUP AJOUT -->
 <div id="addPopup" class="popup">
   <div class="popup-content add-popup">
-    <button class="popup-close" onclick="closeAddPopup()">Fermer</button>
+    <button class="popup-close" id="closeAdd">Fermer</button>
     <h3>Ajouter un souvenir 💖</h3>
     <input type="text" id="eventName" placeholder="Nom de l'événement">
     <input type="date" id="eventDate">
     <input type="text" id="eventLocation" placeholder="Lieu">
     <input type="file" id="eventMedia" multiple accept="image/*,video/*">
-    <button onclick="addEvent()">Ajouter 💌</button>
+    <button id="addEventBtn">Ajouter 💌</button>
   </div>
 </div>
 
 <!-- POPUP DETAILS -->
 <div id="popup" class="popup">
   <div class="popup-content">
-    <button class="popup-close" onclick="closePopup()">Fermer</button>
+    <button class="popup-close" id="closePopup">Fermer</button>
     <div id="popupDetails"></div>
   </div>
 </div>
 
 <script>
-// ===== SUPABASE CONFIG =====
-const SUPABASE_URL = 'https://rzibufafvrxnbanbnopt.supabase.co'; // remplace par ton URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aWJ1ZmFmdnJ4bmJhbmJub3B0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzNjUyNDUsImV4cCI6MjA3OTk0MTI0NX0.hluW9vy-z1Dass6z_q2kLrSdSobzKgNo3WKktCB_92s'; // remplace par ta clé
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+document.addEventListener('DOMContentLoaded', () => {
+  // ===== SUPABASE CONFIG =====
+  const SUPABASE_URL = 'https://rzibufafvrxnbanbnopt.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aWJ1ZmFmdnJ4bmJhbmJub3B0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzNjUyNDUsImV4cCI6MjA3OTk0MTI0NX0.hluW9vy-z1Dass6z_q2kLrSdSobzKgNo3WKktCB_92s';
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ===== SECTIONS =====
-function showSection(name){
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.getElementById(name).classList.add('active');
-}
-showSection('souvenirs');
+  // ===== SECTIONS =====
+  const sections = document.querySelectorAll('.section');
+  function showSection(name){
+    sections.forEach(s => s.classList.remove('active'));
+    document.getElementById(name).classList.add('active');
+  }
+  document.getElementById('btnSouvenirs').addEventListener('click', () => showSection('souvenirs'));
+  document.getElementById('btnChat').addEventListener('click', () => showSection('chat'));
+  document.getElementById('btnJeu').addEventListener('click', () => showSection('jeu'));
+  showSection('souvenirs');
 
-// ===== SOUVENIRS =====
-const chatContainer=document.getElementById('chatMessages');
-const chatInput=document.getElementById('chatInput');
-  
-const events=[];
-function openAddPopup(){ document.getElementById('addPopup').style.display='flex'; }
-function closeAddPopup(){ document.getElementById('addPopup').style.display='none'; }
+  // ===== SOUVENIRS =====
+  const events = [];
+  const eventsGrid = document.getElementById('eventsGrid');
+  const addPopup = document.getElementById('addPopup');
+  const openAdd = document.getElementById('openAdd');
+  const closeAdd = document.getElementById('closeAdd');
+  const addEventBtn = document.getElementById('addEventBtn');
+  const popup = document.getElementById('popup');
+  const popupDetails = document.getElementById('popupDetails');
 
-function addEvent(){
-  const name=document.getElementById('eventName').value;
-  const date=document.getElementById('eventDate').value;
-  const location=document.getElementById('eventLocation').value;
-  const mediaInput=document.getElementById('eventMedia');
-  const mediaFiles=Array.from(mediaInput.files);
-  if(!name||!date) return alert("Nom et date obligatoires 💖");
-  const media=[];
-  let count=0;
-  if(mediaFiles.length===0){ events.push({name,date,location,media:[]}); renderEvents(); closeAddPopup(); }
-  mediaFiles.forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=function(e){
-      media.push({name:file.name,type:file.type,url:e.target.result});
-      count++;
-      if(count===mediaFiles.length){ events.push({name,date,location,media}); renderEvents(); closeAddPopup(); }
-    };
-    reader.readAsDataURL(file);
+  openAdd.addEventListener('click', () => addPopup.style.display='flex');
+  closeAdd.addEventListener('click', () => addPopup.style.display='none');
+
+  function renderEvents(){
+    eventsGrid.innerHTML='';
+    events.forEach(e=>{
+      const div=document.createElement('div'); div.className='event-card';
+      let mediaHTML='<div style="height:180px;background:#ffe0e6;"></div>';
+      if(e.media.length>0){
+        const rand=Math.floor(Math.random()*e.media.length);
+        const m=e.media[rand];
+        if(m.type.startsWith('image')) mediaHTML=`<img src="${m.url}" alt="${e.name}">`;
+        else if(m.type.startsWith('video')) mediaHTML=`<video src="${m.url}" autoplay muted loop></video>`;
+      }
+      div.innerHTML=mediaHTML+`<div class="event-info"><h3>💌 ${e.name}</h3><p>${e.date}</p><p>${e.location||'-'}</p></div>`;
+      div.addEventListener('click', ()=>openEventPopup(e));
+      eventsGrid.appendChild(div);
+    });
+  }
+
+  function addEvent(){
+    const name=document.getElementById('eventName').value;
+    const date=document.getElementById('eventDate').value;
+    const location=document.getElementById('eventLocation').value;
+    const mediaInput=document.getElementById('eventMedia');
+    const mediaFiles=Array.from(mediaInput.files);
+    if(!name||!date) return alert("Nom et date obligatoires 💖");
+    const media=[];
+    let count=0;
+    if(mediaFiles.length===0){ events.push({name,date,location,media:[]}); renderEvents(); addPopup.style.display='none'; }
+    mediaFiles.forEach(file=>{
+      const reader=new FileReader();
+      reader.onload=function(e){
+        media.push({name:file.name,type:file.type,url:e.target.result});
+        count++;
+        if(count===mediaFiles.length){ events.push({name,date,location,media}); renderEvents(); addPopup.style.display='none'; }
+      };
+      reader.readAsDataURL(file);
+    });
+    document.getElementById('eventName').value='';
+    document.getElementById('eventDate').value='';
+    document.getElementById('eventLocation').value='';
+    mediaInput.value='';
+  }
+
+  addEventBtn.addEventListener('click', addEvent);
+
+  function openEventPopup(event){
+    popupDetails.innerHTML=`<h3>💖 ${event.name}</h3><p>Date : ${event.date}</p><p>Lieu : ${event.location||'-'}</p>`;
+    event.media.forEach(m=>{
+      if(m.type.startsWith('image')){
+        const img=document.createElement('img'); img.src=m.url; img.style.width='100%'; popupDetails.appendChild(img);
+      } else if(m.type.startsWith('video')){
+        const vid=document.createElement('video'); vid.src=m.url; vid.controls=true; vid.style.width='100%'; popupDetails.appendChild(vid);
+      }
+    });
+    popup.style.display='flex';
+  }
+  document.getElementById('closePopup').addEventListener('click', ()=>popup.style.display='none');
+  renderEvents();
+
+  // ===== CHAT =====
+  const chatContainer = document.getElementById('chatMessages');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  async function setupChat(){
+    const { data: messages } = await supabase.from('messages').select('*').order('created_at');
+    renderMessages(messages);
+
+    supabase.channel('public:messages')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
+        renderMessages([payload.new]);
+      })
+      .subscribe();
+  }
+
+  function renderMessages(messages){
+    messages.forEach(msg=>{
+      const div=document.createElement('div');
+      div.className='message me';
+      div.textContent=msg.text;
+      chatContainer.appendChild(div);
+    });
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+
+  async function sendMessage(){
+    const text = chatInput.value.trim();
+    if(!text) return;
+    await supabase.from('messages').insert({ text });
+    chatInput.value='';
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  setupChat();
+
+  // ===== JEU =====
+  const questions=[
+    "Qui de nous deux est le plus romantique ? 💖",
+    "Quelle est notre date préférée ensemble ? 🌹",
+    "Quel est le premier film qu’on a vu ensemble ? 🎬",
+    "Qui rit le plus ? 😄",
+    "Quelle est notre chanson préférée ? 🎶",
+    "Quelle est la surprise idéale pour l'autre ? 🎁"
+  ];
+  document.getElementById('nextQ').addEventListener('click', ()=>{
+    const q = questions[Math.floor(Math.random()*questions.length)];
+    document.getElementById('question').textContent = q;
   });
-  document.getElementById('eventName').value='';
-  document.getElementById('eventDate').value='';
-  document.getElementById('eventLocation').value='';
-  mediaInput.value='';
-}
-
-function renderEvents(){
-  const grid=document.getElementById('eventsGrid');
-  grid.innerHTML='';
-  events.forEach(e=>{
-    const div=document.createElement('div'); div.className='event-card';
-    let mediaHTML='<div style="height:180px;background:#ffe0e6;"></div>';
-    if(e.media.length>0){
-      const rand=Math.floor(Math.random()*e.media.length);
-      const m=e.media[rand];
-      if(m.type.startsWith('image')) mediaHTML=`<img src="${m.url}" alt="${e.name}">`;
-      else if(m.type.startsWith('video')) mediaHTML=`<video src="${m.url}" autoplay muted loop></video>`;
-    }
-    div.innerHTML=mediaHTML+`<div class="event-info"><h3>💌 ${e.name}</h3><p>${e.date}</p><p>${e.location||'-'}</p></div>`;
-    div.onclick=()=>openPopup(e);
-    grid.appendChild(div);
-  });
-}
-
-function openPopup(event){
-  const popup=document.getElementById('popup');
-  const details=document.getElementById('popupDetails');
-  details.innerHTML=`<h3>💖 ${event.name}</h3><p>Date : ${event.date}</p><p>Lieu : ${event.location||'-'}</p>`;
-  event.media.forEach(m=>{
-    if(m.type.startsWith('image')){
-      const img=document.createElement('img'); img.src=m.url; details.appendChild(img);
-    } else if(m.type.startsWith('video')){
-      const vid=document.createElement('video'); vid.src=m.url; vid.controls=true; vid.style.width='100%'; details.appendChild(vid);
-    }
-  });
-  popup.style.display='flex';
-}
-function closePopup(){ document.getElementById('popup').style.display='none'; }
-renderEvents();
-
-// ===== CHAT =====
-
-async function setupChat(){
-  const { data: messages } = await supabase.from('messages').select('*').order('created_at');
-  renderMessages(messages);
-
-  supabase.channel('public:messages')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
-      renderMessages([payload.new]);
-    })
-    .subscribe();
-}
-
-function renderMessages(messages){
-  messages.forEach(msg=>{
-    const div=document.createElement('div');
-    div.className='message me';
-    div.textContent=msg.text;
-    chatContainer.appendChild(div);
-  });
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-const chatContainer = document.getElementById('chatMessages');
-const chatInput = document.getElementById('chatInput');
-const sendBtn = document.getElementById('sendBtn');
-
-// Fonction pour envoyer le message
-async function sendMessage() {
-  const text = chatInput.value.trim();
-  if (!text) return;
-  await supabase.from('messages').insert({ text });
-  chatInput.value = '';
-}
-
-// Ajout de l'événement après que le DOM soit prêt
-sendBtn.addEventListener('click', sendMessage);
-
-setupChat();
-
-// ===== JEU =====
-const questions=[
-  "Qui de nous deux est le plus romantique ? 💖",
-  "Quelle est notre date préférée ensemble ? 🌹",
-  "Quel est le premier film qu’on a vu ensemble ? 🎬",
-  "Qui rit le plus ? 😄",
-  "Quelle est notre chanson préférée ? 🎶",
-  "Quelle est la surprise idéale pour l'autre ? 🎁"
-];
-function nextQuestion(){
-  const q=questions[Math.floor(Math.random()*questions.length)];
-  document.getElementById('question').textContent=q;
-}
+});
 </script>
 
 </body>
 </html>
-
