@@ -74,8 +74,8 @@ button.next:hover { background:#ff4757; }
 <div id="chat" class="section">
   <h2 style="text-align:center; color:#ff6b81; font-family:'Great Vibes', cursive;">💌 Chat 💌</h2>
   <div class="chat-container" id="chatMessages"></div>
-  <textarea id="chatInput" placeholder="Tape ton message..."></textarea>
-  <button class="send" onclick="sendMessage()">Envoyer 💖</button>
+<textarea id="chatInput" placeholder="Tape ton message..."></textarea>
+<button class="send" id="sendBtn">Envoyer 💖</button>
 </div>
 
 <!-- JEU -->
@@ -209,12 +209,20 @@ function renderMessages(messages){
   chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-async function sendMessage(){
+const chatContainer = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+
+// Fonction pour envoyer le message
+async function sendMessage() {
   const text = chatInput.value.trim();
-  if(!text) return;
+  if (!text) return;
   await supabase.from('messages').insert({ text });
-  chatInput.value='';
+  chatInput.value = '';
 }
+
+// Ajout de l'événement après que le DOM soit prêt
+sendBtn.addEventListener('click', sendMessage);
 
 setupChat();
 
