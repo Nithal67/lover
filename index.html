@@ -44,128 +44,131 @@ button.add-btn:hover { background:#ff4757; transform:scale(1.05); }
 <header>Nos Souvenirs 💖</header>
 
 <nav>
-  <button onclick="showSection('souvenirs')">Souvenirs</button>
+  <button id="btnSouvenirs">Souvenirs</button>
 </nav>
 
-<!-- SOUVENIRS -->
 <div id="souvenirs" class="section">
-  <button class="add-btn" onclick="openAddPopup()">Ajouter un souvenir 💌</button>
+  <button class="add-btn" id="openAddBtn">Ajouter un souvenir 💌</button>
   <div id="eventsGrid" class="events-grid"></div>
 </div>
 
 <!-- POPUP AJOUT -->
 <div id="addPopup" class="popup">
   <div class="popup-content add-popup">
-    <button class="popup-close" onclick="closeAddPopup()">Fermer</button>
+    <button class="popup-close" id="closeAddBtn">Fermer</button>
     <h3>Ajouter un souvenir 💖</h3>
     <input type="text" id="eventName" placeholder="Nom de l'événement">
     <input type="date" id="eventDate">
     <input type="text" id="eventLocation" placeholder="Lieu">
     <input type="file" id="eventMedia" multiple accept="image/*,video/*">
-    <button onclick="addEvent()">Ajouter 💌</button>
+    <button id="addEventBtn">Ajouter 💌</button>
   </div>
 </div>
 
 <!-- POPUP DETAILS -->
 <div id="popup" class="popup">
   <div class="popup-content">
-    <button class="popup-close" onclick="closePopup()">Fermer</button>
+    <button class="popup-close" id="closePopupBtn">Fermer</button>
     <div id="popupDetails"></div>
   </div>
 </div>
 
 <script>
-// ===== SUPABASE CONFIG =====
-const SUPABASE_URL = 'https://rzibufafvrxnbanbnopt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aWJ1ZmFmdnJ4bmJhbmJub3B0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzNjUyNDUsImV4cCI6MjA3OTk0MTI0NX0.hluW9vy-z1Dass6z_q2kLrSdSobzKgNo3WKktCB_92s';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+document.addEventListener('DOMContentLoaded', async () => {
+  // ===== SUPABASE CONFIG =====
+  const SUPABASE_URL = 'https://rzibufafvrxnbanbnopt.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aWJ1ZmFmdnJ4bmJhbmJub3B0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzNjUyNDUsImV4cCI6MjA3OTk0MTI0NX0.hluW9vy-z1Dass6z_q2kLrSdSobzKgNo3WKktCB_92s';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ===== GLOBAL FUNCTIONS =====
-function showSection(name){
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.getElementById(name).classList.add('active');
-}
+  // ===== GLOBAL VARS =====
+  const eventsGrid = document.getElementById('eventsGrid');
 
-// Popups
-function openAddPopup(){ document.getElementById('addPopup').style.display='flex'; }
-function closeAddPopup(){ document.getElementById('addPopup').style.display='none'; }
-function closePopup(){ document.getElementById('popup').style.display='none'; }
-
-// Ajouter un souvenir
-async function addEvent(){
-  const name = document.getElementById('eventName').value;
-  const date = document.getElementById('eventDate').value;
-  const location = document.getElementById('eventLocation').value;
-  const mediaInput = document.getElementById('eventMedia');
-  const mediaFiles = Array.from(mediaInput.files);
-
-  if(!name || !date) return alert("Nom et date obligatoires 💖");
-
-  const media = [];
-  for(const file of mediaFiles){
-    const reader = new FileReader();
-    await new Promise(resolve => {
-      reader.onload = e => { media.push({name:file.name,type:file.type,url:e.target.result}); resolve(); };
-      reader.readAsDataURL(file);
-    });
+  // ===== SECTIONS =====
+  function showSection(name){
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(name).classList.add('active');
   }
-
-  const { error } = await supabaseClient.from('souvenirs').insert([{name,date,location,media: JSON.stringify(media)}]);
-  if(error){ console.error(error); alert("Erreur lors de l'ajout."); return; }
-
-  closeAddPopup();
-  document.getElementById('eventName').value='';
-  document.getElementById('eventDate').value='';
-  document.getElementById('eventLocation').value='';
-  mediaInput.value='';
-
-  fetchEvents();
-}
-
-// Affichage des souvenirs
-const eventsGrid = document.getElementById('eventsGrid');
-
-async function fetchEvents(){
-  const { data, error } = await supabaseClient.from('souvenirs').select('*').order('created_at', {ascending:true});
-  if(error){ console.error(error); return; }
-  renderEvents(data);
-}
-
-function renderEvents(events){
-  eventsGrid.innerHTML='';
-  events.forEach(e=>{
-    const div=document.createElement('div'); div.className='event-card';
-    let mediaHTML='<div style="height:180px;background:#ffe0e6;"></div>';
-    if(e.media && e.media.length>0){
-      const m = JSON.parse(e.media)[0];
-      if(m.type.startsWith('image')) mediaHTML=`<img src="${m.url}" alt="${e.name}">`;
-      else if(m.type.startsWith('video')) mediaHTML=`<video src="${m.url}" autoplay muted loop></video>`;
-    }
-    div.innerHTML = mediaHTML + `<div class="event-info"><h3>💌 ${e.name}</h3><p>${e.date}</p><p>${e.location||'-'}</p></div>`;
-    div.onclick = ()=>openPopup(e);
-    eventsGrid.appendChild(div);
-  });
-}
-
-function openPopup(event){
-  const popup=document.getElementById('popup');
-  const details=document.getElementById('popupDetails');
-  details.innerHTML=`<h3>💖 ${event.name}</h3><p>Date : ${event.date}</p><p>Lieu : ${event.location||'-'}</p>`;
-  if(event.media){
-    JSON.parse(event.media).forEach(m=>{
-      if(m.type.startsWith('image')){
-        const img = document.createElement('img'); img.src = m.url; img.style.width='100%'; details.appendChild(img);
-      } else if(m.type.startsWith('video')){
-        const vid = document.createElement('video'); vid.src=m.url; vid.controls=true; vid.style.width='100%'; details.appendChild(vid);
-      }
-    });
-  }
-  popup.style.display='flex';
-}
-
-// ===== INIT =====
-document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('btnSouvenirs').addEventListener('click', ()=>showSection('souvenirs'));
   showSection('souvenirs');
+
+  // ===== POPUPS =====
+  function openAddPopup(){ document.getElementById('addPopup').style.display='flex'; }
+  function closeAddPopup(){ document.getElementById('addPopup').style.display='none'; }
+  function closePopup(){ document.getElementById('popup').style.display='none'; }
+
+  document.getElementById('openAddBtn').addEventListener('click', openAddPopup);
+  document.getElementById('closeAddBtn').addEventListener('click', closeAddPopup);
+  document.getElementById('closePopupBtn').addEventListener('click', closePopup);
+
+  // ===== FETCH & RENDER EVENTS =====
+  async function fetchEvents(){
+    const { data, error } = await supabaseClient.from('souvenirs').select('*').order('created_at', {ascending:true});
+    if(error){ console.error(error); return; }
+    renderEvents(data);
+  }
+
+  function renderEvents(events){
+    eventsGrid.innerHTML='';
+    events.forEach(e=>{
+      const div=document.createElement('div'); div.className='event-card';
+      let mediaHTML='<div style="height:180px;background:#ffe0e6;"></div>';
+      if(e.media && e.media.length>0){
+        const m = JSON.parse(e.media)[0];
+        if(m.type.startsWith('image')) mediaHTML=`<img src="${m.url}" alt="${e.name}">`;
+        else if(m.type.startsWith('video')) mediaHTML=`<video src="${m.url}" autoplay muted loop></video>`;
+      }
+      div.innerHTML = mediaHTML + `<div class="event-info"><h3>💌 ${e.name}</h3><p>${e.date}</p><p>${e.location||'-'}</p></div>`;
+      div.onclick = ()=>openPopup(e);
+      eventsGrid.appendChild(div);
+    });
+  }
+
+  function openPopup(event){
+    const popup=document.getElementById('popup');
+    const details=document.getElementById('popupDetails');
+    details.innerHTML=`<h3>💖 ${event.name}</h3><p>Date : ${event.date}</p><p>Lieu : ${event.location||'-'}</p>`;
+    if(event.media){
+      JSON.parse(event.media).forEach(m=>{
+        if(m.type.startsWith('image')){
+          const img = document.createElement('img'); img.src = m.url; img.style.width='100%'; details.appendChild(img);
+        } else if(m.type.startsWith('video')){
+          const vid = document.createElement('video'); vid.src=m.url; vid.controls=true; vid.style.width='100%'; details.appendChild(vid);
+        }
+      });
+    }
+    popup.style.display='flex';
+  }
+
+  // ===== ADD EVENT =====
+  document.getElementById('addEventBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('eventName').value;
+    const date = document.getElementById('eventDate').value;
+    const location = document.getElementById('eventLocation').value;
+    const mediaInput = document.getElementById('eventMedia');
+    const mediaFiles = Array.from(mediaInput.files);
+    if(!name||!date) return alert("Nom et date obligatoires 💖");
+
+    const media = [];
+    for(const file of mediaFiles){
+      const reader = new FileReader();
+      await new Promise(resolve=>{
+        reader.onload=e=>{ media.push({name:file.name,type:file.type,url:e.target.result}); resolve(); };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    const { error } = await supabaseClient.from('souvenirs').insert([{name,date,location,media: JSON.stringify(media)}]);
+    if(error){ console.error(error); alert("Erreur lors de l'ajout."); return; }
+
+    closeAddPopup();
+    document.getElementById('eventName').value='';
+    document.getElementById('eventDate').value='';
+    document.getElementById('eventLocation').value='';
+    mediaInput.value='';
+
+    fetchEvents();
+  });
+
   fetchEvents();
 });
 </script>
